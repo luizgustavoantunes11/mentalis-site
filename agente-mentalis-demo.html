@@ -1,0 +1,1256 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agente SDR Mentalis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..600&display=swap" rel="stylesheet">
+</head>
+<body>
+<style>
+/* Identidade do site Mentalis v6: editorial e claro. Newsreader nos títulos, Geist no texto,
+   Geist Mono nos dados. Tinta quase preta, um único acento magenta, painéis escuros para o que a IA faz. */
+:root{
+  color-scheme:light;
+  --bg:#FFFFFF; --soft:#F4F5F7; --soft-2:#F2F3F5; --line:#E4E6EA; --line-2:#D3D6DB;
+  --ink:#0D0E11; --ink-2:#2A2D34; --text:#4B505A; --muted:#6B717C; --faint:#A3A8B2;
+  --accent:#D1105A; --accent-d:#FF4D8D;
+  --ok:#12A150; --ok-t:#0B7A3B; --ok-bg:#E7F6EE;
+  --warn-t:#8A4B00; --warn-bg:#FFF3E0; --warn:#E08A1E;
+  --bad-t:#C0362C; --bad-bg:#FBECEB;
+  --d-bg:#0D0E11; --d-2:#121418; --d-3:#1C1F25; --d-line:#262931; --d-text:#F2F3F5; --d-muted:#A3A8B2; --d-faint:#7D838E; --d-ok:#2BD9A0;
+  --serif:"Newsreader",Georgia,serif;
+  --sans:"Geist",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"Geist Mono",ui-monospace,"SFMono-Regular",monospace;
+  --ease:cubic-bezier(0.16,1,0.3,1);
+}
+*{box-sizing:border-box}
+html{background:#FFFFFF}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;
+  padding-inline:16px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+::selection{background:var(--ink);color:#fff}
+
+/* Tudo mora sob .mdemo: dá para colar a seção no site sem colidir com o resto. */
+.mdemo{max-width:1200px;margin:0 auto;padding-block:0 64px}
+.mdemo h1,.mdemo h2,.mdemo h3{margin:0;text-wrap:balance}
+.mdemo button,.mdemo input{font-family:inherit}
+.mdemo :focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.md-mono{font-family:var(--mono)}
+.md-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+/* barra da marca, igual ao cabeçalho do site */
+.md-brand{display:flex;align-items:center;gap:16px;height:68px;border-bottom:1px solid var(--line)}
+.md-logo{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:600;letter-spacing:-.03em;color:var(--ink);text-decoration:none}
+.md-logo svg{display:block;flex-shrink:0}
+.md-live{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--text);white-space:nowrap}
+.md-live i{width:7px;height:7px;border-radius:999px;background:var(--ok);animation:mPulse 2.4s infinite}
+@keyframes mPulse{0%{box-shadow:0 0 0 0 rgba(18,161,80,.5)}70%{box-shadow:0 0 0 6px rgba(18,161,80,0)}100%{box-shadow:0 0 0 0 rgba(18,161,80,0)}}
+.md-pill{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:40px;padding:0 18px;border-radius:999px;
+  background:var(--ink);color:#fff;font-size:14px;font-weight:500;white-space:nowrap;text-decoration:none;border:0;cursor:pointer;transition:background .2s}
+.md-pill:hover{background:var(--ink-2)}
+
+/* cabeçalho */
+.md-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.02fr);gap:40px 64px;align-items:start;padding-top:clamp(48px,7vw,96px)}
+.mdemo h1{font-family:var(--serif);font-weight:400;font-size:clamp(40px,5vw,72px);line-height:1.02;letter-spacing:-.025em;margin-top:20px}
+.md-lede{color:var(--text);font-size:18px;line-height:1.6;max-width:48ch;margin:24px 0 0;text-wrap:pretty}
+.md-pts{list-style:none;margin:28px 0 0;padding:0;display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.md-pts li{display:grid;grid-template-columns:34px 1fr;gap:8px;padding:14px 0;border-bottom:1px solid var(--line);font-size:15px;color:var(--text)}
+.md-pts li span{font-family:var(--mono);font-size:13px;color:var(--accent);padding-top:1px}
+
+/* formulário */
+.md-form{background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:28px;box-shadow:0 40px 80px -56px rgba(13,14,17,.35)}
+.md-form h2{font-family:var(--serif);font-weight:400;font-size:30px;letter-spacing:-.02em;line-height:1.1;margin-top:10px}
+.md-fields{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px}
+.md-field{display:flex;flex-direction:column;gap:7px;min-width:0}
+.md-field.full{grid-column:1/-1}
+.md-field label{font-size:14px;font-weight:500;color:var(--ink)}
+.md-field label span{color:var(--muted);font-weight:400}
+.md-field input{font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line-2);border-radius:12px;height:48px;padding:0 14px;width:100%;
+  transition:border-color .2s,box-shadow .2s}
+.md-field input::placeholder{color:var(--faint)}
+.md-field input:hover{border-color:var(--faint)}
+.md-field input:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 3px rgba(13,14,17,.08)}
+.md-field input[aria-invalid="true"]{border-color:var(--bad-t)}
+.md-ex{margin-top:20px}
+.md-ex p{margin:0 0 10px}
+.md-chips{display:flex;flex-wrap:wrap;gap:8px}
+.md-chip{font-size:13.5px;cursor:pointer;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:7px 14px;transition:border-color .2s,background .2s}
+.md-chip:hover{border-color:var(--ink)}
+.md-chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.md-go{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:22px;padding-top:20px;border-top:1px solid var(--line)}
+.md-ai{display:none;align-items:center;gap:10px;font-size:14px;color:var(--ink);cursor:pointer}
+.md-ai.on{display:flex}
+.md-ai input{appearance:none;width:36px;height:22px;border-radius:999px;background:var(--line-2);position:relative;cursor:pointer;margin:0;transition:background .2s}
+.md-ai input::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .25s var(--ease)}
+.md-ai input:checked{background:var(--ink)}
+.md-ai input:checked::after{transform:translateX(14px)}
+.md-ai small{display:block;color:var(--muted);font-size:12px;font-family:var(--mono)}
+.md-err{margin:12px 0 0;font-size:14px;color:var(--bad-t)}
+.md-err:empty{display:none}
+
+/* botões */
+.md-btn{display:inline-flex;align-items:center;gap:10px;height:52px;padding:0 24px;border-radius:999px;border:0;background:var(--ink);color:#fff;
+  font-size:16px;font-weight:500;cursor:pointer;white-space:nowrap;transition:background .2s}
+.md-btn:hover{background:var(--ink-2)}
+.md-btn[disabled]{opacity:.5;cursor:progress}
+.md-link{font-size:14px;background:none;border:0;color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:6px 2px}
+.md-link:hover{color:var(--ink)}
+
+/* execução */
+.md-run{margin-top:clamp(64px,8vw,104px);padding-top:clamp(40px,5vw,64px);border-top:1px solid var(--line);scroll-margin-top:16px}
+.md-runhead{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.md-runhead h2{font-family:var(--serif);font-weight:400;font-size:clamp(30px,3.4vw,46px);line-height:1.06;letter-spacing:-.02em;margin-top:14px}
+.md-runhead h2 span{color:var(--muted)}
+.md-selo{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--text);padding:6px 12px;border-radius:999px;border:1px solid var(--line)}
+.md-selo i{width:8px;height:8px;border-radius:2px;background:var(--faint)}
+.md-selo.ia{color:var(--ink);border-color:var(--ink)}
+.md-selo.ia i{background:var(--accent)}
+
+/* etapas: índice em mono, etapa atual em pílula preta, como a navegação do site */
+.md-steps-wrap{overflow-x:auto;margin-top:28px;scrollbar-width:none}
+.md-steps-wrap::-webkit-scrollbar{display:none}
+.md-steps{list-style:none;margin:0;padding:0;display:flex;gap:4px;min-width:700px}
+.md-steps li{flex:1;display:flex;align-items:center;gap:10px;font-size:14px;color:var(--faint);padding:10px 14px;border-radius:999px;white-space:nowrap}
+.md-steps li .n{font-family:var(--mono);font-size:12px;display:inline-flex;align-items:center}
+.md-steps li.done{color:var(--text)}
+.md-steps li.done .n{color:var(--ok)}
+.md-steps li[aria-current="step"]{background:var(--ink);color:#fff;font-weight:500}
+.md-steps li[aria-current="step"] .n{color:var(--accent-d)}
+
+/* palco + registro */
+.md-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:20px;margin-top:20px;align-items:start}
+.md-stage{background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:clamp(20px,3vw,36px);min-height:480px}
+.md-stage h2{font-family:var(--serif);font-weight:400;font-size:clamp(28px,2.6vw,36px);line-height:1.08;letter-spacing:-.02em}
+.md-stage h2 .k{display:block;font-family:var(--mono);font-size:13px;color:var(--accent);letter-spacing:0;margin-bottom:10px}
+.md-stage .what{color:var(--text);font-size:16px;line-height:1.6;margin:12px 0 24px;max-width:58ch}
+
+.md-log{background:var(--d-bg);color:var(--d-text);border-radius:20px;padding:clamp(20px,2.4vw,28px);position:sticky;top:16px;
+  box-shadow:0 40px 80px -48px rgba(13,14,17,.55)}
+.md-log header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:16px;border-bottom:1px solid var(--d-line)}
+.md-log h3{font-family:var(--mono);font-weight:400;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--d-muted);display:flex;align-items:center;gap:10px}
+.md-log h3 i{width:8px;height:8px;border-radius:999px;background:var(--accent-d)}
+.md-state{font-family:var(--mono);font-size:12px;color:var(--d-faint);white-space:nowrap}
+.md-state.wait{color:#FFC46B}
+.md-state.done{color:var(--d-ok)}
+.md-log ol{list-style:none;margin:0;padding:0;font-family:var(--mono);font-size:12.5px;line-height:1.5;color:var(--d-text);
+  max-height:520px;min-height:200px;overflow-y:auto;display:flex;flex-direction:column}
+.md-log li{display:grid;grid-template-columns:70px minmax(0,1fr);gap:12px;padding:8px 0;border-top:1px solid var(--d-line)}
+.md-log li:first-child{border-top:0}
+.md-log .t{color:var(--d-faint);font-variant-numeric:tabular-nums}
+.md-log .ia{color:var(--accent-d)}
+.md-log .ok{color:var(--d-ok)}
+.md-log .hi{color:#FFC46B}
+.md-log li.sep{display:block;color:var(--d-faint);margin-top:10px;padding-top:12px;letter-spacing:.08em;text-transform:uppercase;font-size:11px}
+.md-log li.sep:first-child{margin-top:0;padding-top:4px}
+
+/* componentes do palco */
+.md-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.md-stat{padding:18px 16px 18px 0}
+.md-stat + .md-stat{padding-left:18px;border-left:1px solid var(--line)}
+.md-stat b{display:block;font-family:var(--serif);font-weight:400;font-size:40px;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.md-stat span{display:block;font-size:13px;color:var(--muted);margin-top:8px}
+.md-list{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column}
+.md-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 16px;padding:14px 0;border-bottom:1px solid var(--line);align-items:center}
+.md-list li:last-child{border-bottom:0}
+.md-list .nm{font-weight:500;font-size:16px}
+.md-list .meta{font-size:13px;color:var(--muted);grid-column:1}
+.md-list .sc{grid-row:1/3;grid-column:2;font-family:var(--serif);font-size:30px;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.md-bar{grid-column:1/-1;height:4px;border-radius:999px;background:var(--line);overflow:hidden;margin-top:4px}
+.md-bar i{display:block;height:100%;background:var(--ink);border-radius:999px;width:0;transition:width .9s var(--ease)}
+.md-list li:first-child .md-bar i{background:var(--accent)}
+.md-list li.risk .md-bar i{background:var(--warn)}
+.md-list li.risk .sc{color:var(--warn-t)}
+.md-tag{display:inline-block;font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:999px;margin-left:10px;vertical-align:2px}
+.md-tag.risk{background:var(--warn-bg);color:var(--warn-t)}
+.md-crit{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.md-crit span{font-size:13px;padding:6px 12px;border-radius:999px;color:var(--text);border:1px solid var(--line)}
+.md-crit b{font-family:var(--mono);color:var(--ink);font-weight:500}
+
+.md-dossie{display:grid;grid-template-columns:minmax(0,1fr) 190px;gap:28px;border:1px solid var(--line);border-radius:16px;padding:24px}
+.md-dossie h3{font-family:var(--serif);font-weight:400;font-size:26px;letter-spacing:-.02em;line-height:1.1;margin-bottom:18px}
+.md-dossie .big{font-family:var(--serif);font-size:72px;line-height:.9;letter-spacing:-.03em;color:var(--ink)}
+.md-dossie .big + p{font-family:var(--mono)}
+.md-dossie dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:12px 18px;font-size:15px}
+.md-dossie dt{font-family:var(--mono);color:var(--muted);font-size:12px;padding-top:3px;text-transform:uppercase;letter-spacing:.06em}
+.md-dossie dd{margin:0;color:var(--text)}
+.md-dossie dd b{color:var(--ink);font-weight:500}
+.md-rub{display:flex;flex-direction:column;font-size:13px;color:var(--text);border-top:1px solid var(--line)}
+.md-rub div{display:grid;grid-template-columns:1fr 46px;gap:6px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.md-rub span.v{text-align:right;font-family:var(--mono);color:var(--ink)}
+.md-note{margin-top:16px;font-size:14.5px;padding:14px 16px;border-radius:12px;background:var(--warn-bg);color:var(--ink)}
+.md-note b{color:var(--warn-t);font-weight:600}
+
+/* ligação: painel escuro, igual à demonstração de conversa do site */
+.md-callbox{border-radius:20px;background:var(--d-bg);color:var(--d-text);overflow:hidden;box-shadow:0 40px 80px -48px rgba(13,14,17,.55)}
+.md-callbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px;padding:14px 20px;border-bottom:1px solid var(--d-line);font-family:var(--mono);font-size:12px;color:var(--d-muted)}
+.md-callbar .rec{display:flex;align-items:center;gap:8px;color:var(--d-text)}
+.md-callbar .rec i{width:8px;height:8px;border-radius:2px;background:var(--accent-d)}
+.md-callbar .r{margin-left:auto}
+.md-call{display:flex;flex-direction:column;gap:14px;padding:clamp(18px,2.6vw,28px);min-height:200px}
+.md-sys{font-family:var(--mono);font-size:12px;color:var(--d-faint);display:flex;align-items:center;gap:8px;align-self:center;text-align:center}
+.md-say{max-width:82%;display:flex;flex-direction:column;gap:6px}
+.md-say .b{padding:12px 16px;font-size:15px;line-height:1.5}
+.md-say small{font-family:var(--mono);font-size:11px;color:var(--d-faint);display:flex;align-items:center;gap:8px}
+.md-say.lead{align-self:flex-start}
+.md-say.lead .b{background:var(--d-3);border-radius:18px 18px 18px 4px}
+.md-say.ia,.md-say.sdr{align-self:flex-end;align-items:flex-end}
+.md-say.ia .b{background:var(--d-text);color:var(--ink);border-radius:18px 18px 4px 18px}
+.md-say.sdr .b{background:var(--ink-2);color:#fff;border:1px solid #3A3D45;border-radius:18px 18px 4px 18px}
+.md-wave{display:inline-flex;align-items:center;gap:2px;height:12px}
+.md-wave i{width:2px;height:4px;border-radius:1px;background:var(--accent-d)}
+.md-say.falando .md-wave i{animation:mdWave .9s ease-in-out infinite}
+.md-say.falando .md-wave i:nth-child(2){animation-delay:.15s}
+.md-say.falando .md-wave i:nth-child(3){animation-delay:.3s}
+.md-say.falando .md-wave i:nth-child(4){animation-delay:.45s}
+@keyframes mdWave{0%,100%{height:3px}50%{height:12px}}
+.md-ask{margin-top:18px;padding:20px;border:1px solid var(--ink);border-radius:16px}
+.md-ask p{margin:0 0 14px;font-size:15px;color:var(--text)}
+.md-ask p b{color:var(--ink);font-weight:500}
+.md-choices{display:flex;flex-wrap:wrap;gap:8px}
+.md-choice{font-size:14.5px;cursor:pointer;background:var(--bg);color:var(--ink);border:1px solid var(--line-2);border-radius:999px;padding:10px 16px;transition:all .2s}
+.md-choice:hover{border-color:var(--ink);background:var(--soft)}
+
+/* registro de consentimento */
+.md-reg{border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.md-reg header{display:flex;align-items:center;gap:14px;padding:18px 20px;border-bottom:1px solid var(--line)}
+.md-reg header svg{flex:0 0 28px}
+.md-reg header b{display:block;font-size:16px;font-weight:500}
+.md-reg header span{font-size:14px;color:var(--text)}
+.md-reg.ok header{background:var(--ok-bg)} .md-reg.ok header svg{color:var(--ok-t)}
+.md-reg.no header{background:var(--soft)} .md-reg.no header svg{color:var(--muted)}
+.md-reg dl{margin:0;padding:6px 20px 10px;display:grid;grid-template-columns:170px 1fr;font-size:14px}
+.md-reg dt,.md-reg dd{padding:10px 0;border-bottom:1px solid var(--line)}
+.md-reg dt{color:var(--muted);font-size:13px}
+.md-reg dd{margin:0;font-family:var(--mono);font-size:13px;color:var(--ink);overflow-wrap:anywhere}
+.md-reg dt:nth-last-of-type(1),.md-reg dd:last-of-type{border-bottom:0}
+
+/* celular */
+.md-phone{max-width:360px;margin:0 auto;border:1px solid var(--line);border-radius:28px;overflow:hidden;background:var(--soft);box-shadow:0 40px 80px -56px rgba(13,14,17,.45)}
+.md-phone header{background:var(--bg);padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.md-phone header i{width:32px;height:32px;border-radius:50%;background:var(--ink);display:grid;place-items:center;font-style:normal;font-weight:600;color:#fff;font-size:13px}
+.md-phone header b{display:block;font-size:14px;font-weight:500}
+.md-phone header span{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.md-chat{padding:14px;display:flex;flex-direction:column;gap:8px;min-height:300px}
+.md-msg{max-width:84%;padding:9px 12px;border-radius:14px;font-size:14px;line-height:1.45;background:var(--bg);border:1px solid var(--line)}
+.md-msg.out{align-self:flex-end;background:var(--ink);color:#fff;border-color:var(--ink);border-top-right-radius:4px}
+.md-msg.in{align-self:flex-start;border-top-left-radius:4px}
+.md-msg time{display:block;text-align:right;font-size:10.5px;opacity:.6;margin-top:3px;font-family:var(--mono)}
+.md-file{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;border-radius:9px;background:rgba(255,255,255,.1);font-size:12.5px;overflow-wrap:anywhere}
+.md-file::before{content:"PDF";font-family:var(--mono);font-size:10px;font-weight:500;color:#fff;background:var(--accent);padding:2px 5px;border-radius:4px}
+.md-quick{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+
+/* e-mail */
+.md-mail{border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.md-mail .hd{padding:14px 20px;border-bottom:1px solid var(--line);font-size:13px;color:var(--muted);display:grid;grid-template-columns:64px 1fr;gap:6px 10px;font-family:var(--mono)}
+.md-mail .hd b{color:var(--ink);font-weight:400;font-family:var(--sans);font-size:14px;overflow-wrap:anywhere}
+.md-mail .bd{padding:20px;font-size:15px;line-height:1.6;white-space:pre-line;color:var(--ink)}
+.md-mail .ft{padding:12px 20px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);background:var(--soft)}
+
+/* reunião */
+.md-meet{margin-top:18px;border:1px solid var(--line);border-radius:16px;padding:18px 20px;display:grid;grid-template-columns:auto 1fr;gap:4px 18px;align-items:center}
+.md-meet .cal{grid-row:1/4;width:72px;border-radius:12px;overflow:hidden;text-align:center;background:var(--ink);color:#fff;padding:8px 0}
+.md-meet .cal span{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--faint)}
+.md-meet .cal b{display:block;font-family:var(--serif);font-weight:400;font-size:24px;line-height:1.1;margin-top:2px}
+.md-meet h3{font-size:16px;font-weight:500;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.md-meet p{margin:0;font-size:13.5px;color:var(--text)}
+
+.md-split{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}
+.md-split section{border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+.md-split section.ai{background:var(--d-bg);border-color:var(--d-bg);color:var(--d-text)}
+.md-split h3{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:400;margin-bottom:12px}
+.md-split section.ai h3{color:var(--accent-d)}
+.md-split ul{margin:0;padding-left:18px;font-size:14.5px;display:flex;flex-direction:column;gap:5px}
+.md-split section.ai ul{color:var(--d-text)}
+.md-split section.hu ul{color:var(--text)}
+
+.md-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:28px}
+
+/* espera da IA */
+.md-wait{display:flex;flex-direction:column;align-items:flex-start;gap:14px;padding:30px 0}
+.md-radar{width:56px;height:56px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:mdSpin .9s linear infinite}
+@keyframes mdSpin{to{transform:rotate(1turn)}}
+
+/* rodapé */
+.md-foot{margin-top:clamp(64px,8vw,104px)}
+.md-promises{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--line)}
+.md-promises div{font-size:14.5px;line-height:1.6;color:var(--text);padding:24px 24px 24px 0}
+.md-promises div + div{padding-left:24px;border-left:1px solid var(--line)}
+.md-promises .i{display:block;font-family:var(--mono);font-size:13px;color:var(--accent);margin-bottom:14px}
+.md-promises b{display:block;font-family:var(--serif);font-weight:400;font-size:24px;line-height:1.15;letter-spacing:-.015em;color:var(--ink);margin-bottom:8px}
+.md-cta{margin-top:40px;border-radius:20px;padding:clamp(28px,5vw,56px);display:flex;align-items:flex-end;justify-content:space-between;gap:24px 40px;flex-wrap:wrap;
+  background:var(--d-bg);color:#fff}
+.md-cta p{margin:0;font-family:var(--serif);font-size:clamp(30px,3.6vw,48px);line-height:1.06;letter-spacing:-.02em;max-width:18ch}
+.md-cta a{display:inline-flex;align-items:center;gap:10px;height:52px;padding:0 24px;border-radius:999px;background:#fff;color:var(--ink);font-size:16px;font-weight:500;text-decoration:none;transition:background .2s}
+.md-cta a:hover{background:var(--soft-2)}
+.md-disclaimer{margin-top:20px;font-size:12.5px;color:var(--muted);max-width:90ch}
+
+.md-in{animation:mdIn .55s var(--ease) both}
+@keyframes mdIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+@media (max-width:960px){
+  .md-hero{grid-template-columns:1fr}
+  .md-grid{grid-template-columns:1fr}
+  .md-log{position:static}
+  .md-log ol{max-height:300px}
+  .md-dossie{grid-template-columns:1fr}
+  .md-promises{grid-template-columns:1fr 1fr}
+  .md-promises div:nth-child(3){padding-left:0;border-left:0}
+  .md-promises div:nth-child(n+3){border-top:1px solid var(--line)}
+}
+@media (max-width:560px){
+  .md-brand .md-pill{display:none}
+  .md-fields{grid-template-columns:1fr}
+  .md-form{padding:20px}
+  .md-go .md-btn{width:100%;justify-content:center}
+  .md-stats .md-stat b{font-size:30px}
+  .md-stat span{font-size:12px}
+  .md-split{grid-template-columns:1fr}
+  .md-reg dl{grid-template-columns:1fr}
+  .md-reg dt{border-bottom:0;padding-bottom:0}
+  .md-reg dd{padding-top:4px}
+  .md-say{max-width:92%}
+  .md-callbar span:nth-child(2){display:none}
+  .md-promises{grid-template-columns:1fr}
+  .md-promises div,.md-promises div + div{padding:20px 0;border-left:0;border-top:1px solid var(--line)}
+  .md-promises div:first-child{border-top:0}
+  .md-cta a{width:100%;justify-content:center}
+}
+@media (prefers-reduced-motion:reduce){
+  .md-in{animation:none}
+  .md-bar i{transition:none}
+  .md-radar,.md-live i{animation:none}
+  .md-say.falando .md-wave i{animation:none;height:8px}
+}
+</style>
+
+<div class="mdemo" id="mdemo">
+  <div class="md-brand">
+    <a class="md-logo" id="md-home" href="#" aria-label="Mentalis">
+      <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="none" stroke="#0D0E11" stroke-width="2" stroke-dasharray="72 16" stroke-linecap="round" transform="rotate(-12 16 16)"/><path d="M10 21.5V10.5l6 6.6 6-6.6v11" fill="none" stroke="#0D0E11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="25.94" cy="6.14" r="2.4" fill="#D1105A"/></svg>Mentalis</a>
+    <span class="md-live"><i></i>Agentes operando</span>
+    <a class="md-pill md-contato" href="#" target="_blank" rel="noopener">Agendar consultoria</a>
+  </div>
+
+  <div class="md-hero">
+    <div>
+      <div class="md-kicker">Mentalis / Agente SDR · demonstração</div>
+      <h1>Conte o que você vende. O agente encontra quem compra.</h1>
+      <p class="md-lede">Descreva o seu negócio e veja o agente de prospecção da Mentalis trabalhar: ele encontra
+        empresas com perfil de compra, pontua cada uma, liga, se apresenta e marca a reunião na agenda do vendedor.</p>
+      <ul class="md-pts">
+        <li><span>01</span>Funciona para qualquer segmento que venda para outras empresas.</li>
+        <li><span>02</span>O agente de IA pesquisa, liga, apresenta a oferta e marca a reunião. Sua equipe entra na reunião.</li>
+        <li><span>03</span>Na ligação, você faz o papel do cliente e decide o que responder para a IA.</li>
+      </ul>
+    </div>
+
+    <form class="md-form" id="md-form" novalidate>
+      <div class="md-kicker">Simulação</div>
+      <h2>Seu negócio</h2>
+      <div class="md-fields">
+        <div class="md-field full">
+          <label for="md-oferta">O que sua empresa vende?</label>
+          <input id="md-oferta" name="oferta" maxlength="60" autocomplete="off" placeholder="ex.: software de gestão">
+        </div>
+        <div class="md-field full">
+          <label for="md-publico">Para quem você vende?</label>
+          <input id="md-publico" name="publico" maxlength="60" autocomplete="off" placeholder="ex.: clínicas odontológicas">
+        </div>
+        <div class="md-field">
+          <label for="md-cidade">Cidade</label>
+          <input id="md-cidade" name="cidade" maxlength="40" autocomplete="off" placeholder="ex.: Campinas">
+        </div>
+        <div class="md-field">
+          <label for="md-empresa">Nome da empresa <span>(opcional)</span></label>
+          <input id="md-empresa" name="empresa" maxlength="40" autocomplete="off" placeholder="Sua empresa">
+        </div>
+      </div>
+      <div class="md-ex">
+        <p class="md-kicker">Ou comece por um exemplo</p>
+        <div class="md-chips" id="md-chips"></div>
+      </div>
+      <p class="md-err" id="md-err" role="alert"></p>
+      <div class="md-go">
+        <label class="md-ai" id="md-ai"><input type="checkbox" id="md-ai-on">
+          <span>Montar o cenário com IA ao vivo<small>usa a sua conta Claude</small></span></label>
+        <span></span>
+        <button class="md-btn" id="md-rodar" type="submit">Rodar o agente →</button>
+      </div>
+    </form>
+  </div>
+
+  <section class="md-run" id="md-run" aria-label="Agente em execução">
+    <div class="md-runhead">
+      <div><div class="md-kicker">Turno do agente</div><h2 id="md-titulo"></h2></div>
+      <span class="md-selo" id="md-selo"><i></i><span></span></span>
+    </div>
+    <div class="md-steps-wrap"><ol class="md-steps" id="md-steps" aria-label="Etapas do agente"></ol></div>
+    <div class="md-grid">
+      <section class="md-stage" id="md-stage" aria-live="polite"></section>
+      <aside class="md-log" aria-label="Registro de ações do agente">
+        <header><h3><i></i><span id="md-turno">Registro de ações</span></h3><span class="md-state" id="md-state">Executando…</span></header>
+        <ol id="md-log"></ol>
+      </aside>
+    </div>
+  </section>
+
+  <div class="md-foot">
+    <div class="md-kicker" style="margin-bottom:20px">Regras do agente</div>
+    <div class="md-promises">
+      <div><span class="i">01</span><b>A IA se apresenta como IA</b>Toda ligação começa avisando que quem fala é uma assistente virtual.</div>
+      <div><span class="i">02</span><b>Pediu uma pessoa? Transfere na hora</b>Alguém da equipe assume, com o resumo da conversa na tela.</div>
+      <div><span class="i">03</span><b>WhatsApp só depois do sim</b>Sem autorização registrada, nenhuma mensagem sai.</div>
+      <div><span class="i">04</span><b>Um "não" vale para tudo</b>Quem pede para sair sai de todos os canais, na hora.</div>
+    </div>
+    <div class="md-cta">
+      <p>Quer ver o agente rodando com empresas reais da sua região?</p>
+      <a class="md-contato" href="#" target="_blank" rel="noopener"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Agendar Consultoria Gratuita</a>
+    </div>
+  </div>
+  <p class="md-disclaimer">Demonstração com empresas, pessoas, telefones e números fictícios, montados a partir do que você
+    digitou. Em operação, o agente trabalha com dados públicos reais da região do cliente, e os números de cada etapa variam com o segmento.</p>
+</div>
+
+<script>
+(() => {
+  /* Para onde o botão final leva. Troque pelo WhatsApp ou pela página de contato da Mentalis. */
+  const CONTATO_URL = "https://wa.me/5500000000000";
+
+  const EXEMPLOS = [
+    ["A própria Mentalis", "agentes de IA", "distribuidoras e atacadistas", "São José dos Campos", "Mentalis"],
+    ["Software para clínicas", "software de gestão", "clínicas odontológicas", "Campinas"],
+    ["Energia solar para comércios", "energia solar", "supermercados e padarias", "São José dos Campos"],
+    ["Uniformes e EPI para indústrias", "uniformes e EPI", "indústrias metalúrgicas", "São José dos Campos"],
+    ["Contabilidade para pequenas empresas", "contabilidade", "pequenas empresas", "Curitiba"],
+    ["Marketing para academias", "marketing digital", "academias", "Belo Horizonte"],
+    ["Equipamentos para padarias", "fornos e equipamentos", "padarias", "Ribeirão Preto"]
+  ];
+
+  const ETAPAS = ["Captura", "Pontuação", "Dossiê", "Ligação da IA", "Consentimento", "Reunião"];
+  const SLOTS = { a: ["terça de manhã", "Terça", "10:00", "TER"], b: ["quinta à tarde", "Quinta", "15:00", "QUI"] };
+
+  /* ================= gerador de cenário ================= */
+  const sa = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  function hash(str) { let h = 2166136261; for (const ch of str) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function rng(seed) { let a = seed | 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const pick = (r, a) => a[Math.floor(r() * a.length)];
+  const shuffle = (r, arr) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const cap = t => t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
+  const capW = t => t.split(" ").map((w, i) => (i > 0 && /^(de|da|do|das|dos|e|para|com)$/.test(w)) ? w : cap(w)).join(" ");
+  const minus = t => (t.length > 1 && t[1] === t[1].toUpperCase() && /[A-Z]/.test(t[1])) ? t : t.charAt(0).toLowerCase() + t.slice(1);
+  const slug = t => sa(t).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 28);
+  const limpa = s => String(s || "").replace(/\p{Extended_Pictographic}/gu, "").replace(/\s+/g, " ").trim();
+
+  /* g: gênero do substantivo · b2c: tem muitas avaliações públicas · gen: termo genérico · qn: o nome vem do complemento ("escritórios de advocacia" -> "X Advocacia") */
+  const TIPOS = {
+    clinica: { g: "f", b2c: 1 }, consultorio: { g: "m", b2c: 1 }, restaurante: { g: "m", b2c: 1 }, academia: { g: "f", b2c: 1 },
+    padaria: { g: "f", b2c: 1 }, escola: { g: "f", b2c: 1 }, colegio: { g: "m", b2c: 1 }, farmacia: { g: "f", b2c: 1 },
+    loja: { g: "f", b2c: 1 }, oficina: { g: "f", b2c: 1 }, hotel: { g: "m", b2c: 1 }, pousada: { g: "f", b2c: 1 },
+    mercado: { g: "m", b2c: 1 }, supermercado: { g: "m", b2c: 1 }, salao: { g: "m", b2c: 1 }, barbearia: { g: "f", b2c: 1 },
+    pizzaria: { g: "f", b2c: 1 }, lanchonete: { g: "f", b2c: 1 }, bar: { g: "m", b2c: 1 }, cafeteria: { g: "f", b2c: 1 },
+    hamburgueria: { g: "f", b2c: 1 }, sorveteria: { g: "f", b2c: 1 }, imobiliaria: { g: "f", b2c: 1 }, laboratorio: { g: "m", b2c: 1 },
+    hospital: { g: "m", b2c: 1 }, concessionaria: { g: "f", b2c: 1 }, posto: { g: "m", b2c: 1 }, lavanderia: { g: "f", b2c: 1 },
+    estudio: { g: "m", b2c: 1 }, studio: { g: "m", b2c: 1 }, papelaria: { g: "f", b2c: 1 }, otica: { g: "f", b2c: 1 },
+    creche: { g: "f", b2c: 1 }, faculdade: { g: "f", b2c: 1 }, autoescola: { g: "f", b2c: 1 }, petshop: { g: "m", b2c: 1, rot: "Pet Shop" },
+    pet: { g: "m", b2c: 1, rot: "Pet Shop" }, buffet: { g: "m", b2c: 1 }, floricultura: { g: "f", b2c: 1 }, adega: { g: "f", b2c: 1 },
+    construtora: { g: "f" }, transportadora: { g: "f" }, metalurgica: { g: "f" }, distribuidora: { g: "f" }, grafica: { g: "f" },
+    marcenaria: { g: "f" }, serralheria: { g: "f" }, vidracaria: { g: "f" }, cooperativa: { g: "f" }, fazenda: { g: "f" },
+    frigorifico: { g: "m" }, armazem: { g: "m" }, atacadista: { g: "m" }, atacado: { g: "m" }, condominio: { g: "m" },
+    usinagem: { g: "f" }, tecelagem: { g: "f" }, confeccao: { g: "f" }, hortifruti: { g: "m", b2c: 1 }, varejista: { g: "f" },
+    grupo: { g: "m" }, instituto: { g: "m" }, centro: { g: "m" }, banco: { g: "m" }, sindicato: { g: "m" },
+    escritorio: { g: "m", qn: 1 }, agencia: { g: "f", qn: 1 }, fabrica: { g: "f", qn: 1 }, consultoria: { g: "f", qn: 1 },
+    industria: { g: "f", gen: 1, qn: 1 }, empresa: { g: "f", gen: 1, qn: 1 }, negocio: { g: "m", gen: 1, qn: 1 },
+    comercio: { g: "m", gen: 1, qn: 1 }, startup: { g: "f", gen: 1, qn: 1 }, pme: { g: "f", gen: 1, qn: 1, rot: "Empresa" },
+    companhia: { g: "f", gen: 1, qn: 1 }, cliente: { g: "m", gen: 1, qn: 1 }, varejo: { g: "m", gen: 1, qn: 1 },
+    /* profissionais viram o tipo de negócio onde trabalham */
+    dentista: { g: "m", b2c: 1, rot: "Consultório Odontológico", cat: "consultório odontológico" },
+    medico: { g: "f", b2c: 1, rot: "Clínica", cat: "clínica médica" },
+    advogado: { g: "f", suf: "Advocacia", cat: "escritório de advocacia" },
+    arquiteto: { g: "f", suf: "Arquitetura", cat: "escritório de arquitetura" },
+    engenheiro: { g: "f", suf: "Engenharia", cat: "escritório de engenharia" },
+    contador: { g: "f", suf: "Contabilidade", cat: "escritório de contabilidade" },
+    corretor: { g: "f", b2c: 1, rot: "Imobiliária", cat: "imobiliária" },
+    nutricionista: { g: "m", b2c: 1, rot: "Consultório", cat: "consultório de nutrição" },
+    psicologo: { g: "m", b2c: 1, rot: "Consultório", cat: "consultório de psicologia" },
+    veterinario: { g: "f", b2c: 1, rot: "Clínica Veterinária", cat: "clínica veterinária" },
+    fisioterapeuta: { g: "f", b2c: 1, rot: "Clínica de Fisioterapia", cat: "clínica de fisioterapia" },
+    personal: { g: "m", b2c: 1, rot: "Studio", cat: "studio de treino" }
+  };
+  const PESSOA = /^(dono|dona|proprietario|proprietaria|gestor|gestora|gerente|diretor|diretora|socio|socia|responsavel)$/;
+  const TAMANHO = /^(pequena|pequeno|media|medio|grande|micro|nova|novo|local|regional|familiar|independente)$/;
+  const PREP = /^(de|da|do|das|dos|para|com|em|no|na|nos|nas|que|sem)$/;
+
+  function singular(w) {
+    if (w.length <= 3) return w;
+    if (/(ões|ães|ãos)$/.test(w)) return w.replace(/(ões|ães|ãos)$/, "ão");
+    if (/eses$/.test(w)) return w.replace(/eses$/, "ês");
+    if (/ais$/.test(w)) return w.replace(/ais$/, "al");
+    if (/éis$/.test(w)) return w.replace(/éis$/, "el");
+    if (/óis$/.test(w)) return w.replace(/óis$/, "ol");
+    if (/ns$/.test(w)) return w.replace(/ns$/, "m");
+    if (/(o|a|e)res$/.test(w)) return w.replace(/res$/, "r");
+    if (/zes$/.test(w)) return w.replace(/zes$/, "z");
+    if (/[^s]s$/.test(w)) return w.slice(0, -1);
+    return w;
+  }
+  /* "clínicas odontológicas" -> { cabeca: "clínica", adj: ["odontológica"], comp: "", ... } */
+  function analisa(frase) {
+    let ws = limpa(frase).toLowerCase().replace(/[.;:!?"]/g, "").split(" ").filter(Boolean);
+    if (/^(para|os|as|a|o)$/.test(ws[0] || "")) ws = ws.slice(1);
+    if (ws.length > 2 && PESSOA.test(sa(singular(ws[0]))) && PREP.test(ws[1])) ws = ws.slice(2);
+    const iPrep = ws.findIndex((w, i) => i > 0 && PREP.test(w));
+    const antes = (iPrep < 0 ? ws : ws.slice(0, iPrep)).map(singular);
+    const comp = iPrep < 0 ? "" : ws.slice(iPrep).join(" ");
+    let cabeca = antes[0] || "empresa";
+    let adj = antes.slice(1);
+    if (cabeca === "pet" && adj[0] === "shop") { adj = adj.slice(1); cabeca = "pet shop"; }
+    if (TAMANHO.test(sa(cabeca)) && adj.length) { cabeca = adj[0]; adj = adj.slice(1); }
+    const key = sa(cabeca).replace(/\s/g, "");
+    const info = TIPOS[key] || TIPOS[sa(cabeca)] || null;
+    const adjUteis = adj.filter(a => !TAMANHO.test(sa(a)));
+    return { cabeca, key, info, adj: adjUteis, comp, catSing: [...antes, comp].filter(Boolean).join(" ") };
+  }
+  /* separa "restaurantes e mercados" em dois tipos, mas só quando os dois lados são tipos conhecidos */
+  function tiposDoPublico(publico) {
+    const partes = limpa(publico).split(/\s*,\s*|\s+e\s+|\s+ou\s+/i).filter(Boolean);
+    if (partes.length > 1) {
+      const an = partes.map(analisa);
+      if (an.every(a => a.info)) return an;
+    }
+    return [analisa(publico)];
+  }
+
+  const FANTASIA = ["Bela Vista", "Vale Verde", "Horizonte", "Alvorada", "Primavera", "Monte Claro", "Nova Era", "Aliança",
+    "Estrela do Vale", "Ponte Alta", "Serra Azul", "Sol Nascente", "Boa Esperança", "Araucária", "Jequitibá", "Mantiqueira",
+    "Pedra Branca", "Mirante", "Cedro", "Aurora", "Paineira", "Rio Manso", "Campo Belo", "Ipê Dourado"];
+  const CLIENTES = ["Vértice", "Prisma", "Lumen", "Órbita", "Vetor", "Ápice", "Nexo", "Arandu"];
+  const NOMES_F = ["Paula", "Juliana", "Camila", "Renata", "Fernanda", "Beatriz", "Larissa", "Mariana", "Patrícia", "Aline"];
+  const NOMES_M = ["Rafael", "Ricardo", "Eduardo", "Marcelo", "Thiago", "Gustavo", "André", "Felipe", "Rodrigo", "Bruno"];
+  const BAIRROS_SJC = ["Jardim Aquarius", "Vila Ema", "Jardim Satélite", "Centro", "Vila Adyana", "Bosque dos Eucaliptos",
+    "Vila Industrial", "Chácaras Reunidas", "Eugênio de Melo", "Jardim Esplanada", "Urbanova", "Parque Industrial"];
+  const BAIRROS = ["Centro", "Jardim América", "Vila Nova", "Bela Vista", "Distrito Industrial", "Jardim Europa",
+    "Vila Maria", "Santa Cruz", "Jardim Paulista", "Boa Vista", "São Jorge", "Parque das Flores"];
+  const DDD = { "sao jose dos campos": 12, "taubate": 12, "jacarei": 12, "cacapava": 12, "pindamonhangaba": 12,
+    "sao paulo": 11, "guarulhos": 11, "osasco": 11, "santo andre": 11, "sao bernardo do campo": 11, "barueri": 11, "jundiai": 11,
+    "campinas": 19, "piracicaba": 19, "limeira": 19, "ribeirao preto": 16, "franca": 16, "sao carlos": 16, "araraquara": 16,
+    "sorocaba": 15, "santos": 13, "bauru": 14, "marilia": 14, "sao jose do rio preto": 17, "presidente prudente": 18,
+    "rio de janeiro": 21, "niteroi": 21, "belo horizonte": 31, "contagem": 31, "uberlandia": 34, "juiz de fora": 32,
+    "vitoria": 27, "lavras": 35, "pouso alegre": 35, "varginha": 35, "montes claros": 38, "ipatinga": 31, "governador valadares": 33, "curitiba": 41, "londrina": 43, "maringa": 44, "joinville": 47, "florianopolis": 48, "blumenau": 47,
+    "porto alegre": 51, "caxias do sul": 54, "brasilia": 61, "goiania": 62, "campo grande": 67, "cuiaba": 65,
+    "salvador": 71, "recife": 81, "fortaleza": 85, "natal": 84, "joao pessoa": 83, "maceio": 82, "aracaju": 79,
+    "sao luis": 98, "teresina": 86, "belem": 91, "manaus": 92, "palmas": 63, "porto velho": 69 };
+  const SINAIS = ["abriu a segunda unidade há oito meses", "está contratando para três vagas", "ampliou o horário de atendimento este ano",
+    "reformou e ampliou o espaço no último semestre", "colocou um site novo no ar este ano", "quase dobrou as avaliações em doze meses"];
+  const SUFIXOS = [[/software|sistema|\bapp\b|aplicativo|\berp\b|\bcrm\b|plataforma|automa/, "Sistemas"], [/solar|energia/, "Energia"],
+    [/uniforme|\bepi\b|fardamento/, "Uniformes"], [/contab|fiscal/, "Contabilidade"], [/marketing|trafego|redes sociais|publicidade/, "Marketing"],
+    [/equipament|maquina|forno|ferrament/, "Equipamentos"], [/consultori/, "Consultoria"], [/seguro/, "Seguros"],
+    [/limpeza|manutenc|seguranca|facilities/, "Serviços"], [/aliment|bebida|insumo|distribui/, "Distribuidora"],
+    [/treinamento|curso|capacita/, "Educação"], [/frete|logistic|transporte/, "Logística"]];
+
+  const genero = nome => { const k = sa(nome.split(" ")[0]); return TIPOS[k] ? TIPOS[k].g : "f"; };
+  const de = nome => genero(nome) === "m" ? "do " : "da ";
+  const em = nome => genero(nome) === "m" ? "no " : "na ";
+  const nota = n => n.toFixed(1).replace(".", ",");
+  const fmt = n => n.toLocaleString("pt-BR");
+  const dig = r => String(Math.floor(r() * 10));
+
+  function nomeLead(an, fant, r, alt) {
+    const info = an.info || {};
+    if (info.suf) return { nome: `${fant} ${info.suf}`, cat: info.cat };
+    if (info.rot && !info.gen) return { nome: `${info.rot} ${fant}`, cat: info.cat || an.catSing.replace(/^pet\s?shop|^pet/, "pet shop") };
+    if (info.gen) {
+      const cat = an.catSing;
+      if (an.adj.length) return { nome: alt ? `${capW(an.adj.join(" "))} ${fant}` : `${capW(an.cabeca === "pme" ? "empresa" : an.cabeca)} ${capW(an.adj.join(" "))} ${fant}`, cat };
+      if (an.comp && /^(de|da|do|das|dos)\s/.test(an.comp)) {
+        const q = an.comp.replace(/^(de|da|do|das|dos)\s/, "");
+        return { nome: `${fant} ${capW(q)}`, cat };
+      }
+      return { nome: pick(r, [`Grupo ${fant}`, `${fant} Comércio`, `${fant} Serviços`, `Comercial ${fant}`]), cat: cat === "pme" ? "pequena empresa" : cat };
+    }
+    if (info.qn && an.comp && /^(de|da|do|das|dos)\s/.test(an.comp)) {
+      return { nome: `${fant} ${capW(an.comp.replace(/^(de|da|do|das|dos)\s/, ""))}`, cat: an.catSing };
+    }
+    const base = capW((alt ? [an.cabeca] : [an.cabeca, ...an.adj]).join(" "));
+    return { nome: `${base} ${fant}`, cat: an.catSing };
+  }
+
+  function rubricaPara(score) {
+    const rub = [["Fit de nicho", 25, 25], ["Volume de consumo", 25, 25], ["Acessibilidade", 20, 20], ["Operação ativa", 15, 15], ["Canal de contato", 10, 10], ["Evidência", 5, 5]];
+    let d = 100 - score;
+    for (const [i, max] of [[4, 3], [5, 3], [1, 6], [2, 6], [0, 10]]) { const t = Math.min(d, max); rub[i][1] -= t; d -= t; }
+    return rub;
+  }
+
+  function gerarCenario(inp) {
+    const oferta = minus(limpa(inp.oferta)), publico = minus(limpa(inp.publico));
+    const cidade = capW(limpa(inp.cidade).toLowerCase()) || "São José dos Campos";
+    const r = rng(hash(sa(`${oferta}|${publico}|${cidade}|${inp.empresa}`)));
+    const tipos = tiposDoPublico(publico);
+    const b2c = tipos.some(t => t.info && t.info.b2c);
+    let cliente = limpa(inp.empresa);
+    const clienteFicticio = !cliente;
+    if (!cliente) {
+      const s = SUFIXOS.find(([re]) => re.test(sa(oferta)));
+      cliente = `${pick(r, CLIENTES)} ${s ? s[1] : "Soluções"}`;
+    }
+    const sj = sa(cidade) === "sao jose dos campos";
+    const bairros = shuffle(r, sj ? BAIRROS_SJC : BAIRROS);
+    const ddd = DDD[sa(cidade)];
+    const fone = (pre) => `(${ddd || "••"}) ${pre === "9 " ? "9 ••••" : "3•••"}-${dig(r)}${dig(r)}${dig(r)}${dig(r)}`;
+    const fants = shuffle(r, FANTASIA);
+    const base = [93, 87, 82, 74, 63, 42];
+    let prev = 101;
+    const leads = base.map((b, i) => {
+      let sc = Math.min(prev - 2, b + Math.floor(r() * 5) - 2); prev = sc;
+      const an = tipos[i % tipos.length];
+      const { nome, cat } = nomeLead(an, fants[i], r, i % 2 === 1);
+      const risco = i === 5;
+      const aval = b2c ? Math.round((risco ? 120 + r() * 300 : 300 + r() * 3400) / 10) * 10
+                       : Math.round((risco ? 30 + r() * 60 : 50 + r() * 380) / 5) * 5;
+      const n = risco ? 2.6 + Math.floor(r() * 5) / 10 : 4.3 + Math.floor(r() * 7) / 10;
+      return { nome, cat: cat || an.catSing, bairro: bairros[i], nota: n, aval, score: sc, risco };
+    });
+    const decG = r() < .5 ? "a" : "o", sdrG = decG === "a" ? "o" : "a";
+    const CARGOS = b2c ? [["sócio", "sócia"], ["proprietário", "proprietária"], ["gerente", "gerente"]]
+                       : [["diretor", "diretora"], ["gerente administrativo", "gerente administrativa"], ["sócio", "sócia"], ["comprador", "compradora"]];
+    const cg = pick(r, CARGOS), cargo = decG === "a" ? cg[1] : cg[0];
+    const decisor = pick(r, decG === "a" ? NOMES_F : NOMES_M), sdr = pick(r, sdrG === "a" ? NOMES_F : NOMES_M);
+    const l = leads[0], rk = leads[5];
+    const art = decG === "a" ? "a" : "o";
+    const sinal = pick(r, SINAIS);
+    const acesso = pick(r, [
+      `Independente: quem decide é ${art} ${cargo}, ali mesmo.`,
+      `Sem matriz nem central de compras: a decisão é tomada na própria unidade.`,
+      `Rede local de duas unidades: ${art} ${cargo} responde pelas duas.`]);
+    const canal = b2c ? "Telefone fixo" : pick(r, ["Telefone fixo", "Celular"]);
+    const varridos = 90 + Math.floor(r() * 150);
+    const perfil = Math.round(varridos * (0.38 + r() * 0.2));
+    const pct = 30 + Math.floor(r() * 15);
+    const buscas = [...new Set(tipos.map(t => t.catSing).filter(Boolean))].slice(0, 3);
+    return {
+      oferta, publico, cidade, cliente, clienteFicticio, ddd: !!ddd,
+      buscas, varridos, perfil, leads,
+      sdr, sdrG, decisor, decG, cargo,
+      canal, fone: fone(canal === "Celular" ? "9 " : "3"), whats: fone("9 "), email: `contato@${slug(l.nome.split(" ").slice(-2).join(" "))}.exemplo`,
+      gancho: `${cap(sinal)}, com ${nota(l.nota)}★ em ${fmt(l.aval)} avaliações. Operação em crescimento: momento certo para falar de ${oferta}.`,
+      acesso,
+      pitch: `A gente trabalha com ${oferta} para ${publico} aqui da região.`,
+      risco: `Nota ${nota(rk.nota)} e ${pct}% de avaliações de 1★ nos últimos meses: sinal de instabilidade. Não vender a prazo sem análise.`,
+      rubrica: rubricaPara(l.score),
+      pdf: slug(cliente) || "proposta",
+      fonte: "gerador"
+    };
+  }
+
+  /* ================= modo IA (só aparece dentro do claude.ai) ================= */
+  let sample = null;
+  (async () => {
+    try {
+      const s = await window.claude?.use?.("sample");
+      if (s) { sample = s; $("#md-ai").classList.add("on"); }
+    } catch (_) { /* fora do claude.ai: segue só com o gerador */ }
+  })();
+
+  async function cenarioComIA(inp, base, ctl) {
+    const pedido = `Você monta um cenário FICTÍCIO para a demonstração de um agente de prospecção B2B no Brasil.
+Empresa que vende: ${base.cliente}. O que vende: ${base.oferta}. Para quem: ${base.publico}. Região: ${base.cidade}.
+Responda só com um objeto JSON, neste formato exato:
+{"leads":[{"nome":"nome fantasia inventado de uma empresa-alvo, começando pelo tipo (ex.: Clínica Odontológica Bela Vista)","tipo":"tipo da empresa no singular, minúsculo"}],
+"buscas":["3 termos curtos que o agente usaria para buscar empresas-alvo em mapas e diretórios"],
+"decisor":{"nome":"primeiro nome","genero":"o ou a","cargo":"cargo de quem decide essa compra, concordando com o gênero, minúsculo"},
+"gancho":"por que vale ligar para o primeiro lead: um sinal público de crescimento ou de necessidade da oferta, uma frase de até 150 caracteres",
+"pitch":"o que o agente de IA diz ao telefone para apresentar a oferta em uma frase, sem pressão, até 140 caracteres, começando com 'A gente'",
+"risco":"motivo plausível, baseado em avaliações públicas, para não vender a prazo ao sexto lead, até 110 caracteres"}
+Regras: exatamente 6 leads, todos de tipos que compram essa oferta; nomes inventados, nunca de empresas reais; português do Brasil; sem emoji; sem dados pessoais reais.`;
+    const j = await sample.json(pedido, { modelTier: "quick", signal: ctl.signal });
+    const t = (v, max) => { const s = limpa(v); return s && s.length <= max + 40 ? (s.length > max ? s.slice(0, max).replace(/\s\S*$/, "") + "…" : s) : null; };
+    const c = structuredClone(base);
+    if (Array.isArray(j?.leads) && j.leads.length >= 6) {
+      j.leads.slice(0, 6).forEach((x, i) => {
+        const nome = t(x?.nome, 48), tipo = t(x?.tipo, 40);
+        if (nome) c.leads[i].nome = nome;
+        if (tipo) c.leads[i].cat = minus(tipo);
+      });
+    }
+    if (Array.isArray(j?.buscas)) { const b = j.buscas.map(x => t(x, 40)).filter(Boolean).slice(0, 4); if (b.length) c.buscas = b; }
+    const d = j?.decisor;
+    if (d && t(d.nome, 20) && /^[oa]$/.test(String(d.genero || "").trim()) && t(d.cargo, 40)) {
+      c.decisor = t(d.nome, 20).split(" ")[0]; c.decG = d.genero.trim(); c.cargo = minus(t(d.cargo, 40));
+      c.sdrG = c.decG === "a" ? "o" : "a";
+      c.sdr = pick(rng(hash(c.decisor)), c.sdrG === "a" ? NOMES_F : NOMES_M);
+    }
+    const g = t(j?.gancho, 160); if (g) c.gancho = cap(g);
+    const p = t(j?.pitch, 150); if (p) c.pitch = cap(p);
+    const k = t(j?.risco, 120); if (k) c.risco = cap(k.replace(/\.?$/, ".")) + " Não vender a prazo sem análise.";
+    c.email = `contato@${slug(c.leads[0].nome.split(" ").slice(-2).join(" "))}.exemplo`;
+    c.fonte = "ia";
+    return c;
+  }
+
+  /* ================= motor da demonstração ================= */
+  const $ = s => document.querySelector(s);
+  const stage = $("#md-stage"), logEl = $("#md-log");
+  const reduz = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const CHECK = '<svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 6.4l2.3 2.3 4.7-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  let C = null;                       // cenário atual
+  let st = { step: 0, ramo: null, slot: null, humano: false };
+  let timers = [];
+  let rapido = true;                  // primeira carga: tudo já desenhado, para quem só olha a página
+  let ctlIA = null, paradoPeloUsuario = false;
+  const later = (ms, fn) => timers.push(setTimeout(fn, (reduz || rapido) ? 0 : ms));
+  const cancelar = () => { timers.forEach(clearTimeout); timers = []; };
+  document.querySelectorAll(".md-contato").forEach(a => { a.href = CONTATO_URL; });
+
+  function estado(txt, cls = "") {
+    const e = $("#md-state"); e.textContent = txt; e.className = "md-state " + cls;
+    $("#md-turno").textContent = cls === "done" ? "Turno concluído" : "Registro de ações";
+  }
+
+  function log(linhas, passo = 260, inicio = 0) {
+    linhas.forEach((l, i) => later(inicio + i * passo, () => {
+      const li = document.createElement("li");
+      if (l.sep) { li.className = "sep"; li.textContent = l.sep; }
+      else li.innerHTML = `<span class="t">${esc(l.t)}</span><span class="${l.c || ""}">${esc(l.txt)}</span>`;
+      logEl.appendChild(li);
+      logEl.scrollTop = logEl.scrollHeight;
+    }));
+  }
+
+  function renderSteps() {
+    $("#md-steps").innerHTML = ETAPAS.map((e, i) =>
+      `<li class="${i < st.step ? "done" : ""}" ${i === st.step ? 'aria-current="step"' : ""}>
+         <span class="n">${i < st.step ? CHECK : String(i + 1).padStart(2, "0")}</span>${e}</li>`).join("");
+  }
+  function botoes(prox, rotulo) {
+    return `<div class="md-actions">
+      ${prox ? `<button class="md-btn" id="md-next" type="button" data-go="${prox}">${rotulo}</button>` : ""}
+      <button class="md-link" id="md-reset" type="button">Recomeçar</button></div>`;
+  }
+  function titulo(n, txt) { return `<h2><span class="k">0${n}</span>${txt}</h2>`; }
+
+  function ir(passo, rolar = true) {
+    cancelar();
+    st.step = passo;
+    renderSteps();
+    estado("Executando…");
+    [captura, pontuacao, dossie, preAviso, consentimento, reuniao][passo]();
+    if (rolar) stage.scrollIntoView({ block: "nearest", behavior: reduz ? "auto" : "smooth" });
+  }
+  function iniciar(cen, rolar) {
+    cancelar();
+    C = cen;
+    st = { step: 0, ramo: null, slot: null, humano: false };
+    logEl.innerHTML = "";
+    $("#md-titulo").innerHTML = `${esc(C.cliente)} <span>· vende ${esc(C.oferta)}</span>`;
+    const selo = $("#md-selo");
+    selo.className = "md-selo" + (C.fonte === "ia" ? " ia" : "");
+    selo.querySelector("span").textContent = C.fonte === "ia" ? "cenário montado pela IA ao vivo" : "cenário de demonstração";
+    ir(0, false);
+    if (rolar) $("#md-run").scrollIntoView({ block: "start", behavior: reduz ? "auto" : "smooth" });
+  }
+
+  /* ---------- 1 · captura ---------- */
+  function captura() {
+    const fora = C.varridos - C.perfil;
+    stage.innerHTML = `${titulo(1, "Captura")}
+      <p class="what">O agente varre mapas, diretórios e sites atrás de ${esc(C.publico)} na região de ${esc(C.cidade)}
+      e guarda só quem tem perfil de compra para ${esc(C.oferta)}.</p>
+      <div class="md-stats">
+        <div class="md-stat"><b id="c-var">0</b><span>empresas encontradas</span></div>
+        <div class="md-stat"><b id="c-per">0</b><span>com perfil de compra</span></div>
+        <div class="md-stat"><b id="c-for">0</b><span>descartadas</span></div>
+      </div>
+      <ul class="md-list" id="c-list"></ul>
+      ${botoes(1, "Pontuar os leads →")}`;
+    const alvo = { "c-var": C.varridos, "c-per": C.perfil, "c-for": fora };
+    const N = reduz ? 1 : 18;
+    for (let k = 1; k <= N; k++) later(k * 45, () => {
+      for (const [id, v] of Object.entries(alvo)) { const e = $("#" + id); if (e) e.textContent = fmt(Math.round(v * k / N)); }
+    });
+    C.leads.forEach((l, i) => later(300 + i * 140, () => {
+      const li = document.createElement("li");
+      li.className = "md-in";
+      li.innerHTML = `<span class="nm">${esc(l.nome)}</span><span class="meta">${esc(l.cat)} · ${esc(l.bairro)}</span>`;
+      $("#c-list").appendChild(li);
+    }));
+    log([
+      { sep: `turno · ${C.cliente}` },
+      { t: "09:00:02", txt: `agente SDR iniciado · oferta: ${C.oferta}`, c: "ia" },
+      { t: "09:00:03", txt: `buscando "${C.buscas.join('", "')}" e variações · ${C.cidade}` },
+      { t: "09:00:41", txt: `${fmt(C.varridos)} empresas encontradas` },
+      { t: "09:00:43", txt: `${fmt(C.perfil)} com perfil · ${fmt(fora)} descartadas` },
+      { t: "09:00:44", txt: "telefone, site e redes de cada uma anexados", c: "ok" }
+    ]);
+  }
+
+  /* ---------- 2 · pontuação ---------- */
+  function pontuacao() {
+    const ord = [...C.leads].sort((a, b) => b.score - a.score);
+    stage.innerHTML = `${titulo(2, "Pontuação")}
+      <p class="what">Cada empresa recebe uma nota de 0 a 100. A nota não mede tamanho: mede a chance de comprar
+      ${esc(C.oferta)} agora.</p>
+      <div class="md-crit">
+        <span><b>25</b> fit de nicho</span><span><b>25</b> volume</span><span><b>20</b> acessibilidade</span>
+        <span><b>15</b> operação ativa</span><span><b>10</b> canal de contato</span><span><b>5</b> evidência</span>
+      </div>
+      <ul class="md-list" id="p-list"></ul>
+      ${botoes(2, "Abrir o dossiê do primeiro →")}`;
+    ord.forEach((l, i) => later(120 + i * 170, () => {
+      const li = document.createElement("li");
+      li.className = "md-in" + (l.risco ? " risk" : "");
+      li.innerHTML = `<span class="nm">${esc(l.nome)}${l.risco ? '<span class="md-tag risk">risco de crédito</span>' : ""}</span>
+        <span class="meta">${nota(l.nota)}★ · ${fmt(l.aval)} avaliações · ${esc(l.bairro)}</span>
+        <span class="sc">${l.score}</span><span class="md-bar"><i></i></span>`;
+      $("#p-list").appendChild(li);
+      const set = () => { const b = li.querySelector(".md-bar i"); if (b) b.style.width = l.score + "%"; };
+      if (rapido || reduz) set(); else requestAnimationFrame(() => requestAnimationFrame(set));
+    }));
+    const r = ord.find(l => l.risco);
+    log([
+      { t: "09:01:10", txt: "pontuando: nicho · volume · acesso · operação · contato", c: "ia" },
+      { t: "09:01:12", txt: `1º ${ord[0].nome} · ${ord[0].score}` },
+      { t: "09:01:12", txt: `2º ${ord[1].nome} · ${ord[1].score}` },
+      { t: "09:01:13", txt: `[risco] ${r.nome}: nota ${nota(r.nota)}, sem prazo`, c: "hi" }
+    ], 260, 400);
+  }
+
+  /* ---------- 3 · dossiê ---------- */
+  function dossie() {
+    const l = C.leads[0], r = C.leads.find(x => x.risco);
+    stage.innerHTML = `${titulo(3, "Dossiê")}
+      <p class="what">Antes de ligar, o agente monta o próprio roteiro: por que esta empresa, o que dizer e o que não oferecer.
+      O mesmo dossiê vai para o vendedor junto com o convite da reunião.</p>
+      <div class="md-dossie md-in">
+        <div>
+          <h3>${esc(l.nome)}</h3>
+          <dl>
+            <dt>Onde</dt><dd>${esc(l.bairro)} · ${esc(l.cat)}</dd>
+            <dt>Reputação</dt><dd>${nota(l.nota)}★ em ${fmt(l.aval)} avaliações</dd>
+            <dt>Por que ligar</dt><dd>${esc(C.gancho)}</dd>
+            <dt>Quem decide</dt><dd>${esc(C.acesso)}</dd>
+            <dt>Canal</dt><dd>${esc(C.canal)} ${esc(C.fone)}</dd>
+            <dt>Próximo passo</dt><dd><b>Ligação do agente de IA, cerca de 1 minuto</b></dd>
+          </dl>
+        </div>
+        <div>
+          <div class="big">${l.score}</div>
+          <p style="margin:4px 0 14px;font-size:12px;color:var(--faint)">de 100</p>
+          <div class="md-rub">${C.rubrica.map(([n, v, m]) => `<div><span>${n}</span><span class="v">${v}/${m}</span></div>`).join("")}</div>
+        </div>
+      </div>
+      <p class="md-note"><b>Alerta na carteira:</b> ${esc(r.nome)}. ${esc(C.risco)}
+      O agente usa isso internamente; a empresa nunca recebe esse rótulo.</p>
+      ${botoes(3, "Ligar com o agente de IA →")}`;
+    log([
+      { t: "09:01:30", txt: `dossiê pronto: ${l.nome} (${l.score})`, c: "ok" },
+      { t: "09:01:31", txt: "roteiro: avisar que é IA, uma frase de oferta, propor reunião", c: "ia" }
+    ]);
+  }
+
+  /* ---------- 4 · ligação do agente de IA ---------- */
+  const ASSIST = "Agente de IA";
+  function fala(quem, cls, txt) {
+    const call = $("#call");
+    call.querySelectorAll(".md-say.falando").forEach(x => x.classList.remove("falando"));
+    const d = document.createElement("div");
+    d.className = `md-say ${cls} md-in` + (cls === "ia" ? " falando" : "");
+    const onda = cls === "ia" ? '<span class="md-wave" aria-hidden="true"><i></i><i></i><i></i><i></i></span>' : "";
+    d.innerHTML = `<div class="b">${esc(txt)}</div><small>${onda}${esc(quem)}</small>`;
+    call.appendChild(d);
+  }
+  function sys(txt) { const d = document.createElement("div"); d.className = "md-sys md-in"; d.textContent = txt; $("#call").appendChild(d); }
+  function calar() { document.querySelectorAll(".md-say.falando").forEach(x => x.classList.remove("falando")); }
+  const quemIA = () => `${ASSIST} · ${C.cliente}`;
+  const quemLead = () => `${C.decisor} · ${C.leads[0].nome}`;
+  const art = g => g === "a" ? "a" : "o";
+
+  function preAviso() {
+    const l = C.leads[0];
+    st.ramo = null; st.humano = false; st.slot = null;
+    stage.innerHTML = `${titulo(4, "Ligação do agente de IA")}
+      <p class="what">O agente liga, avisa logo de cara que é uma inteligência artificial, explica a oferta em uma frase
+      e tenta marcar a reunião. Se a pessoa pedir, ele transfere na hora para alguém da equipe.</p>
+      <div class="md-callbox"><div class="md-callbar"><span class="rec"><i></i>Ligação</span><span>Agente de IA · ${esc(C.cliente)}</span><span class="r" id="md-callst">em andamento</span></div>
+      <div class="md-call" id="call"></div></div>
+      <div id="ask"></div>
+      <div class="md-actions"><button class="md-link" id="md-reset" type="button">Recomeçar</button></div>`;
+    later(100, () => sys(`agente de IA discando ${l.nome} · ${C.fone}`));
+    later(900, () => sys("atendeu · conversa conduzida pela IA, com transcrição ao vivo"));
+    later(1500, () => fala(quemIA(), "ia", `Bom dia! Aqui é a assistente virtual ${de(C.cliente)}${C.cliente}. Sou uma inteligência artificial e ligo em nome d${art(C.sdrG)} ${C.sdr}, do comercial. Falo com quem cuida dessa parte aí?`));
+    later(2700, () => fala(quemLead(), "lead", `Sou eu mesm${C.decG}, ${C.decisor}. Pode falar.`));
+    later(3700, () => fala(quemIA(), "ia", `${C.pitch} Queria propor uma conversa de 20 minutos com ${art(C.sdrG)} ${C.sdr}, sem compromisso. Pode ser esta semana?`));
+    later(4500, () => {
+      calar();
+      estado("Aguardando você", "wait");
+      $("#ask").innerHTML = `<div class="md-ask md-in">
+        <p>Agora é com você. <b>Você é ${esc(C.decisor)}, ${esc(C.cargo)} ${esc(de(l.nome))}${esc(l.nome)}.</b> O que responde para a IA?</p>
+        <div class="md-choices">
+          <button class="md-choice" id="r-marcar" type="button" data-ramo="marcar">"Pode marcar"</button>
+          <button class="md-choice" id="r-whats" type="button" data-ramo="whats">"Manda a proposta no WhatsApp"</button>
+          <button class="md-choice" id="r-email" type="button" data-ramo="email">"Prefiro por e-mail"</button>
+          <button class="md-choice" id="r-humano" type="button" data-ramo="humano">"Quero falar com uma pessoa"</button>
+          <button class="md-choice" id="r-nao" type="button" data-ramo="nao">"Não tenho interesse"</button>
+        </div></div>`;
+      if (!rapido) $("#r-marcar").focus({ preventScroll: true });
+    });
+    log([
+      { sep: "ligação" },
+      { t: "10:41:58", txt: `agente de IA discando ${C.fone} · linha 0303`, c: "ia" },
+      { t: "10:42:01", txt: "atendeu · aviso de IA dado na abertura", c: "ia" },
+      { t: "10:42:02", txt: "transcrevendo e conduzindo a conversa", c: "ia" }
+    ], 600);
+  }
+
+  function botaoRegistro(ms) {
+    later(ms, () => {
+      calar();
+      estado("Executando…");
+      const cs = $("#md-callst"); if (cs) cs.textContent = "encerrada";
+      const a = stage.querySelector(".md-actions");
+      a.insertAdjacentHTML("afterbegin", `<button class="md-btn" id="md-next" type="button" data-go="4">Ver o que o agente registrou →</button>`);
+      $("#md-next").focus({ preventScroll: true });
+    });
+  }
+
+  function responder(ramo) {
+    estado("Executando…");
+    $("#ask").innerHTML = "";
+    const f = (q, c, t, ms) => later(ms, () => fala(q, c, t));
+    const obg = `Obrigada, ${C.decisor}!`;
+    if (ramo === "marcar") {
+      st.ramo = "marcar";
+      f(quemLead(), "lead", "Pode ser. Que dia você tem?", 0);
+      f(quemIA(), "ia", `${C.sdrG === "a" ? "Ela" : "Ele"} tem ${SLOTS.a[0]} ou ${SLOTS.b[0]}. Qual fica melhor?`, 800);
+      later(1500, () => {
+        calar();
+        estado("Aguardando você", "wait");
+        $("#ask").innerHTML = `<div class="md-ask md-in"><p><b>Qual horário você escolhe?</b></p>
+          <div class="md-choices"><button class="md-choice" id="c-a" type="button" data-cslot="a">"${cap(SLOTS.a[0])}"</button>
+          <button class="md-choice" id="c-b" type="button" data-cslot="b">"${cap(SLOTS.b[0])}"</button></div></div>`;
+        if (!rapido) $("#c-a").focus({ preventScroll: true });
+      });
+      return;
+    }
+    if (ramo === "humano") {
+      st.ramo = "whats"; st.humano = true;
+      const quemSdr = `${C.sdr} · ${C.cliente} (equipe)`;
+      f(quemLead(), "lead", "Prefiro falar com uma pessoa.", 0);
+      f(quemIA(), "ia", `Claro. Vou te passar agora para ${art(C.sdrG)} ${C.sdr}, um instante.`, 800);
+      later(1500, () => { calar(); sys(`transferido para ${C.sdr} (${C.sdrG === "a" ? "humana" : "humano"}) em 2 s · resumo da conversa na tela`); });
+      f(quemSdr, "sdr", `Oi, ${C.decisor}, ${C.sdr} aqui. A assistente já me passou o resumo. Posso te mandar a proposta no WhatsApp, com dois horários para a gente conversar?`, 2200);
+      f(quemLead(), "lead", "Pode mandar. É neste número mesmo.", 3200);
+      botaoRegistro(3900);
+      log([{ t: "10:42:39", txt: `lead pediu uma pessoa · transferido para ${C.sdr}`, c: "hi" },
+           { t: "10:43:11", txt: "ligação encerrada · 38 s com a IA, 32 s com a equipe" }], 400, 1500);
+      return;
+    }
+    st.ramo = ramo;
+    if (ramo === "whats") {
+      f(quemLead(), "lead", "Me manda a proposta no WhatsApp que eu olho. É neste número mesmo.", 0);
+      f(quemIA(), "ia", `Combinado: mando agora, com dois horários para a conversa. ${obg}`, 800);
+    } else if (ramo === "email") {
+      f(quemLead(), "lead", `Prefiro por e-mail. Anota aí: ${C.email}`, 0);
+      f(quemIA(), "ia", `Anotado. Te mando hoje, com dois horários para a conversa. ${obg}`, 800);
+    } else {
+      f(quemLead(), "lead", `Não tenho interesse, obrigad${C.decG}.`, 0);
+      f(quemIA(), "ia", "Sem problema, não vou mais entrar em contato. Obrigada pelo seu tempo e bom trabalho!", 800);
+    }
+    botaoRegistro(1500);
+    log([{ t: "10:42:58", txt: "ligação encerrada · 1 min, conduzida pela IA", c: "ia" }], 0, 1000);
+  }
+
+  function escolherNaLigacao(k) {
+    const [txt, dia, hora] = SLOTS[k];
+    st.slot = k;
+    estado("Executando…");
+    $("#ask").innerHTML = "";
+    const f = (q, c, t, ms) => later(ms, () => fala(q, c, t));
+    f(quemLead(), "lead", `${cap(txt)} fica bom.`, 0);
+    f(quemIA(), "ia", `Marcado: ${dia.toLowerCase()}, ${hora}, com ${art(C.sdrG)} ${C.sdr}. Posso te mandar a confirmação e um lembrete no WhatsApp, neste número?`, 800);
+    f(quemLead(), "lead", "Pode, sim.", 1800);
+    f(quemIA(), "ia", `Perfeito. Obrigada, ${C.decisor}, e até ${dia.toLowerCase()}!`, 2500);
+    botaoRegistro(3200);
+    log([{ t: "10:42:51", txt: `reunião marcada na ligação: ${dia.toLowerCase()} ${hora}`, c: "ok" },
+         { t: "10:43:04", txt: "ligação encerrada · 1 min 6 s, conduzida pela IA", c: "ia" }], 600, 1000);
+  }
+
+  /* ---------- 5 · consentimento ---------- */
+  const cadeado = aberto => `<svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <rect x="6" y="12.5" width="16" height="11" rx="2.5" fill="currentColor" fill-opacity=".14"/>
+      ${aberto ? '<path d="M10 12.5V9a4 4 0 0 1 7.6-1.7"/>' : '<path d="M10 12.5V9a4 4 0 0 1 8 0v3.5"/>'}
+      <circle cx="14" cy="18" r="1.4" fill="currentColor" stroke="none"/></svg>`;
+
+  function consentimento() {
+    const l = C.leads[0];
+    const origem = st.humano ? `ligação do agente de IA, transferida para ${C.sdr}` : "ligação do agente de IA";
+    const comum = `<dt>Origem</dt><dd>${esc(origem)}</dd><dt>Aviso de IA</dt><dd>dado na abertura da ligação</dd><dt>Quando</dt><dd>hoje, 10:42</dd>`;
+    let html, linhas;
+    if (st.ramo === "marcar") {
+      const [, dia, hora] = SLOTS[st.slot];
+      html = `<div class="md-reg ok md-in"><header>${cadeado(true)}<div><b>Reunião aceita e WhatsApp liberado para confirmação</b>
+          <span>A autorização vale para confirmar e lembrar a reunião. Nada além disso sai sem um novo sim.</span></div></header>
+        <dl><dt>Quem aceitou</dt><dd>${esc(C.decisor)}, ${esc(C.cargo)}</dd>
+          <dt>Reunião</dt><dd>${dia.toLowerCase()}, ${hora} · com ${esc(C.sdr)}</dd>
+          <dt>Canal autorizado</dt><dd>WhatsApp (confirmação e lembrete)</dd><dt>Número indicado</dt><dd>${esc(C.whats)}</dd>${comum}</dl></div>`;
+      linhas = [{ t: "10:43:05", txt: `consentimento: ${C.decisor} · WhatsApp para confirmação`, c: "ok" },
+                { t: "10:43:05", txt: `convite criado na agenda de ${C.sdr}`, c: "ok" }];
+    } else if (st.ramo === "whats") {
+      html = `<div class="md-reg ok md-in"><header>${cadeado(true)}<div><b>WhatsApp liberado, só para este contato</b>
+          <span>Sem este registro, o sistema não deixa a mensagem sair.</span></div></header>
+        <dl><dt>Quem autorizou</dt><dd>${esc(C.decisor)}, ${esc(C.cargo)}</dd>
+          <dt>Canal autorizado</dt><dd>WhatsApp</dd><dt>Número indicado</dt><dd>${esc(C.whats)}</dd>${comum}</dl></div>`;
+      linhas = [{ t: "10:43:12", txt: `consentimento: ${C.decisor} · WhatsApp · registrado`, c: "ok" },
+                { t: "10:43:12", txt: "WhatsApp liberado para este contato", c: "ok" }];
+    } else if (st.ramo === "email") {
+      html = `<div class="md-reg ok md-in"><header>${cadeado(true)}<div><b>E-mail liberado. WhatsApp continua fechado.</b>
+          <span>A autorização foi para e-mail, e a permissão de um canal não vale para o outro.</span></div></header>
+        <dl><dt>Quem autorizou</dt><dd>${esc(C.decisor)}, ${esc(C.cargo)}</dd>
+          <dt>Canal autorizado</dt><dd>E-mail</dd><dt>Endereço indicado</dt><dd>${esc(C.email)}</dd>${comum}</dl></div>`;
+      linhas = [{ t: "10:42:59", txt: `e-mail capturado: ${C.email}`, c: "ok" },
+                { t: "10:42:59", txt: "WhatsApp: segue bloqueado", c: "hi" }];
+    } else {
+      const prox = C.leads[1];
+      html = `<div class="md-reg no md-in"><header>${cadeado(false)}<div><b>Pedido de saída registrado</b>
+          <span>${esc(l.nome)} sai de todas as cadências, em todos os canais. Nenhuma mensagem será enviada.</span></div></header>
+        <dl><dt>Quem pediu</dt><dd>${esc(C.decisor)}, ${esc(C.cargo)}</dd><dt>Vale para</dt><dd>telefone, e-mail e WhatsApp</dd>
+          ${comum}<dt>Próximo da fila</dt><dd>${esc(prox.nome)} (${prox.score})</dd></dl></div>`;
+      linhas = [{ t: "10:42:59", txt: `saída registrada: ${l.nome}`, c: "hi" },
+                { t: "10:42:59", txt: "removido de todas as cadências" },
+                { t: "10:43:00", txt: `próximo da fila: ${prox.nome}`, c: "ia" }];
+    }
+    const prox = { marcar: "Mandar a confirmação no WhatsApp →", whats: "Mandar a proposta no WhatsApp →", email: "Mandar o e-mail →", nao: "Ver o resumo →" }[st.ramo];
+    stage.innerHTML = `${titulo(5, "Consentimento")}
+      <p class="what">O que ${esc(C.decisor)} disse para a IA vira registro: quem autorizou, para qual canal, em que número e quando.
+      É essa trava que decide o que o agente pode fazer em seguida.</p>
+      ${html}${botoes(5, prox)}`;
+    log(linhas, 300);
+  }
+
+  /* ---------- 6 · reunião ---------- */
+  function celular(sub) {
+    return `<div class="md-phone md-in"><header><i>${esc(C.cliente.charAt(0).toUpperCase())}</i><div><b>${esc(C.cliente)}</b><span>${sub}</span></div></header>
+        <div class="md-chat" id="chat"></div></div>`;
+  }
+  function msg(cls, html, hora, ms) {
+    later(ms, () => {
+      const d = document.createElement("div");
+      d.className = `md-msg ${cls} md-in`;
+      d.innerHTML = `${html}<time>${hora}</time>`;
+      $("#chat").appendChild(d);
+    });
+  }
+  function cartaoReuniao() {
+    const [, dia, hora, abrev] = SLOTS[st.slot];
+    $("#m-meet").innerHTML = `<div class="md-meet md-in">
+        <div class="cal"><span>${abrev}</span><b>${hora}</b></div>
+        <h3>Reunião marcada: ${esc(C.leads[0].nome)}</h3>
+        <p>${dia}, ${hora} · com ${esc(C.sdr)} · na agenda do vendedor</p>
+        <p>Dossiê, gravação, transcrição e consentimento anexados ao convite.</p>
+      </div>${resumo(true)}`;
+    estado("Concluído", "done");
+  }
+
+  function reuniao() {
+    const l = C.leads[0];
+    if (st.ramo === "nao") {
+      stage.innerHTML = `${titulo(6, "Sem reunião, e sem incomodar ninguém")}
+        <p class="what">Nem toda ligação vira reunião, e está tudo bem. O que importa é o que não acontece:
+        ${esc(l.nome)} não recebe nenhuma mensagem, e o agente segue para ${esc(C.leads[1].nome)}.</p>
+        ${resumo(false)}${botoes(null)}
+        <p style="margin-top:10px"><button class="md-link" id="md-outra" type="button">Voltar à ligação e responder outra coisa</button></p>`;
+      estado("Concluído", "done");
+      log([{ t: "10:43:30", txt: `agente de IA ligando para o próximo: ${C.leads[1].nome}`, c: "ia" }]);
+      return;
+    }
+    const sauda = `Oi, ${esc(C.decisor)}! Aqui é a assistente virtual ${esc(de(C.cliente))}${esc(C.cliente)}, falamos agora há pouco por telefone.`;
+    if (st.ramo === "marcar") {
+      const [, dia, hora] = SLOTS[st.slot];
+      stage.innerHTML = `${titulo(6, "Confirmação e reunião")}
+        <p class="what">A reunião já saiu marcada da ligação. O agente manda a confirmação no canal autorizado, coloca o convite na
+        agenda d${art(C.sdrG)} ${esc(C.sdr)} e agenda o lembrete da véspera.</p>
+        ${celular("WhatsApp · conta oficial da empresa")}
+        <div id="m-meet"></div>${botoes(null)}`;
+      msg("out", `${sauda} Confirmando: ${dia.toLowerCase()}, ${hora}, com ${art(C.sdrG)} ${esc(C.sdr)}.<div class="md-file">apresentacao-${esc(C.pdf)}.pdf</div>`, "10:44", 300);
+      msg("out", "Te lembro na véspera. Se precisar remarcar, é só responder aqui.", "10:44", 1000);
+      msg("in", `Obrigad${C.decG}, até lá.`, "10:51", 1700);
+      later(2300, cartaoReuniao);
+      log([{ sep: "whatsapp" }, { t: "10:44:00", txt: "consentimento conferido · confirmação enviada", c: "ok" },
+           { t: "10:44:01", txt: "lembrete agendado para a véspera, 17:00", c: "ia" }], 500);
+      return;
+    }
+    const conversa = `Podemos conversar 20 minutos esta semana com ${art(C.sdrG)} ${C.sdr}, aí ${em(l.nome)}${l.nome} ou por vídeo? ${C.sdrG === "a" ? "Ela" : "Ele"} tem ${SLOTS.a[0]} ou ${SLOTS.b[0]}.`;
+    if (st.ramo === "email") {
+      stage.innerHTML = `${titulo(6, "E-mail e reunião")}
+        <p class="what">O agente escreve e envia o e-mail com o que foi combinado na ligação, e cuida da resposta até a reunião estar na agenda.</p>
+        <div class="md-mail md-in">
+          <div class="hd"><span>De</span><b>Assistente virtual · ${esc(C.cliente)}</b><span>Para</span><b>${esc(C.email)}</b>
+            <span>Assunto</span><b>Proposta para ${esc(de(l.nome).replace("do ", "o ").replace("da ", "a "))}${esc(l.nome)}</b></div>
+          <div class="bd">Oi, ${esc(C.decisor)}! Como combinamos agora há pouco no telefone, segue a proposta de ${esc(C.oferta)}.
+
+${esc(conversa)}
+
+Assistente virtual ${esc(de(C.cliente))}${esc(C.cliente)}, em nome d${art(C.sdrG)} ${esc(C.sdr)}</div>
+          <div class="ft">Mensagem escrita por IA. Se não quiser mais receber contato, responda SAIR e o seu e-mail sai da lista na hora.</div>
+        </div>
+        <div id="m-reply"></div><div id="m-meet"></div>${botoes(null)}`;
+      later(900, () => {
+        estado("Aguardando você", "wait");
+        $("#m-reply").innerHTML = `<div class="md-ask md-in"><p><b>${esc(C.decisor)} respondeu.</b> Escolha o horário que ${C.decG === "a" ? "ela" : "ele"} aceitou:</p>
+          <div class="md-choices"><button class="md-choice" id="s-a" type="button" data-slot="a">"${cap(SLOTS.a[0])}"</button>
+          <button class="md-choice" id="s-b" type="button" data-slot="b">"${cap(SLOTS.b[0])}"</button></div></div>`;
+      });
+      log([{ sep: "e-mail" }, { t: "11:05:12", txt: "e-mail escrito pela IA a partir da transcrição", c: "ia" }, { t: "11:05:13", txt: `e-mail enviado para ${C.email}` }]);
+      return;
+    }
+    stage.innerHTML = `${titulo(6, "WhatsApp e reunião")}
+      <p class="what">${st.humano ? `Depois que ${esc(C.sdr)} pediu a autorização, o agente volta a cuidar de tudo.` : "Logo depois da ligação, a mensagem chega."}
+      A primeira frase lembra a ligação, e é isso que faz a mensagem ser esperada, não estranha.</p>
+      ${celular("WhatsApp · conta oficial da empresa")}
+      <div id="m-meet"></div>${botoes(null)}`;
+    const abre = st.humano ? `Oi, ${esc(C.decisor)}! Aqui é a assistente virtual ${esc(de(C.cliente))}${esc(C.cliente)}, a pedido d${art(C.sdrG)} ${esc(C.sdr)}, com quem você falou agora há pouco.` : sauda;
+    msg("out", `${abre} Segue a proposta.<div class="md-file">proposta-${esc(C.pdf)}.pdf</div>`, "11:05", 300);
+    msg("out", esc(conversa), "11:05", 1100);
+    later(1800, () => {
+      estado("Aguardando você", "wait");
+      const q = document.createElement("div");
+      q.className = "md-quick md-in";
+      q.innerHTML = `<button class="md-choice" id="s-a" type="button" data-slot="a">${cap(SLOTS.a[0])}</button>
+        <button class="md-choice" id="s-b" type="button" data-slot="b">${cap(SLOTS.b[0])}</button>`;
+      $("#chat").appendChild(q);
+    });
+    log([{ sep: "whatsapp" }, { t: "11:05:00", txt: "consentimento conferido · mensagem liberada", c: "ok" },
+         { t: "11:05:01", txt: "mensagem escrita pela IA · proposta anexada", c: "ia" }], 500);
+  }
+
+  function escolherSlot(k) {
+    const [txt, dia, hora] = SLOTS[k];
+    st.slot = k;
+    estado("Executando…");
+    stage.querySelectorAll("[data-slot]").forEach(b => b.closest(".md-quick, .md-ask")?.remove());
+    const chat = $("#chat");
+    if (chat) {
+      msg("in", esc(`${cap(txt)} fica bom.`), "11:16", 0);
+      msg("out", esc(`Fechado: ${dia.toLowerCase()}, ${hora}, com ${art(C.sdrG)} ${C.sdr}. Te mando um lembrete na véspera.`), "11:16", 700);
+    } else {
+      $("#m-reply").innerHTML = `<p class="md-sys md-in">${esc(C.decisor)} respondeu: "${cap(txt)} fica bom." · a IA confirmou e mandou o convite</p>`;
+    }
+    later(chat ? 1300 : 200, cartaoReuniao);
+    log([{ t: "11:16:10", txt: `reunião criada: ${dia.toLowerCase()} ${hora} · agenda de ${C.sdr}`, c: "ok" },
+         { t: "11:16:11", txt: "dossiê, gravação e transcrição anexados ao convite", c: "ia" }], 300, 900);
+  }
+
+  function resumo(marcou) {
+    const fim = st.ramo === "nao" ? "<li>tirou o contato de todas as filas e ligou para o próximo</li>"
+      : st.ramo === "marcar" ? "<li>marcou a reunião na própria ligação e mandou a confirmação</li>"
+      : "<li>escreveu a mensagem, respondeu e marcou a reunião</li>";
+    const humano = st.humano
+      ? `<li>atendeu a transferência por 32 segundos, porque o lead pediu</li><li>vai à reunião com tudo em mãos</li>`
+      : marcou ? "<li>nenhum minuto ao telefone</li><li>só aparece na reunião, com dossiê e gravação em mãos</li>"
+      : "<li>nada: nenhum minuto da equipe foi gasto</li>";
+    return `<div class="md-split md-in">
+      <section class="ai"><h3>O agente de IA fez</h3><ul>
+        <li>varreu ${fmt(C.varridos)} empresas</li><li>pontuou ${fmt(C.perfil)} e sinalizou os riscos de crédito</li>
+        <li>montou o dossiê e o roteiro</li><li>ligou, se apresentou como IA e conduziu a conversa</li>
+        <li>registrou ${st.ramo === "nao" ? "o pedido de saída" : "o consentimento"}</li>${fim}
+      </ul></section>
+      <section class="hu"><h3>A equipe fez</h3><ul>${humano}</ul></section></div>`;
+  }
+  /* ================= formulário ================= */
+  const campos = ["oferta", "publico", "cidade", "empresa"];
+  const valores = () => Object.fromEntries(campos.map(k => [k, $("#md-" + k).value]));
+  function preencher(ex) {
+    $("#md-oferta").value = ex[1]; $("#md-publico").value = ex[2]; $("#md-cidade").value = ex[3]; $("#md-empresa").value = ex[4] || "";
+    marcarChip();
+  }
+  function marcarChip() {
+    const v = valores();
+    document.querySelectorAll(".md-chip").forEach((b, i) => {
+      const ex = EXEMPLOS[i];
+      b.setAttribute("aria-pressed", String(v.oferta === ex[1] && v.publico === ex[2]));
+    });
+  }
+  $("#md-chips").innerHTML = EXEMPLOS.map((e, i) => `<button class="md-chip" type="button" data-ex="${i}" aria-pressed="false">${esc(e[0])}</button>`).join("");
+
+  function valida(v) {
+    const err = [];
+    for (const k of ["oferta", "publico"]) {
+      const ok = limpa(v[k]).length >= 3;
+      $("#md-" + k).setAttribute("aria-invalid", String(!ok));
+      if (!ok) err.push(k);
+    }
+    $("#md-err").textContent = err.length ? "Conte o que sua empresa vende e para quem, e o agente monta o resto." : "";
+    return !err.length;
+  }
+
+  async function rodar() {
+    const v = valores();
+    if (!valida(v)) { $("#md-" + (limpa(v.oferta).length < 3 ? "oferta" : "publico")).focus(); return; }
+    const base = gerarCenario(v);
+    const usarIA = sample && $("#md-ai-on").checked;
+    if (!usarIA) { iniciar(base, true); return; }
+
+    ctlIA?.abort();
+    paradoPeloUsuario = false;
+    const ctl = ctlIA = new AbortController();
+    const btn = $("#md-rodar");
+    btn.disabled = true; btn.textContent = "Montando o cenário…";
+    cancelar();
+    logEl.innerHTML = "";
+    st.step = 0; renderSteps(); estado("Executando…");
+    $("#md-titulo").innerHTML = `${esc(base.cliente)} <span>· vende ${esc(base.oferta)}</span>`;
+    stage.innerHTML = `${titulo(1, "Preparando o turno")}<div class="md-wait"><div class="md-radar" aria-hidden="true"></div>
+      <p class="what" style="margin:0">A IA está montando empresas-alvo e roteiro para ${esc(base.publico)}.</p>
+      <button class="md-link" id="md-stopia" type="button">Usar o cenário de demonstração</button></div>`;
+    log([{ t: "08:59:58", txt: "IA montando o cenário ao vivo…", c: "ia" }], 0);
+    $("#md-run").scrollIntoView({ block: "start", behavior: reduz ? "auto" : "smooth" });
+    const timeout = setTimeout(() => ctl.abort(), 30000);
+    let cen = base;
+    try {
+      cen = await cenarioComIA(v, base, ctl);
+    } catch (e) {
+      if (e && e.code === "not_granted") { sample = null; $("#md-ai").classList.remove("on"); }
+    } finally {
+      clearTimeout(timeout);
+      btn.disabled = false; btn.textContent = "Rodar o agente →";
+    }
+    if (ctlIA !== ctl) return;           // outra execução começou depois desta
+    ctlIA = null;
+    iniciar(cen, false);
+    if (cen.fonte !== "ia") log([{ t: "09:00:01", txt: paradoPeloUsuario ? "usando o cenário de demonstração" : "IA indisponível agora · usando o cenário de demonstração", c: "hi" }], 0);
+  }
+
+  /* ================= eventos ================= */
+  $("#md-form").addEventListener("submit", e => { e.preventDefault(); rodar(); });
+  $("#md-form").addEventListener("input", e => {
+    if (e.target.getAttribute("aria-invalid") === "true" && limpa(e.target.value).length >= 3) {
+      e.target.setAttribute("aria-invalid", "false");
+      if (!document.querySelector('.md-field input[aria-invalid="true"]')) $("#md-err").textContent = "";
+    }
+    marcarChip();
+  });
+  $("#mdemo").addEventListener("click", e => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    if (b.dataset.ex) { preencher(EXEMPLOS[+b.dataset.ex]); valida(valores()); rodar(); return; }
+    if (b.id === "md-stopia") { paradoPeloUsuario = true; ctlIA?.abort(); return; }
+    if (!C) return;
+    if (b.id === "md-reset") { iniciar(C, false); stage.scrollIntoView({ block: "nearest", behavior: reduz ? "auto" : "smooth" }); return; }
+    if (b.id === "md-outra") { cancelar(); st.ramo = null; ir(3); return; }
+    if (b.dataset.ramo) { responder(b.dataset.ramo); return; }
+    if (b.dataset.cslot) { escolherNaLigacao(b.dataset.cslot); return; }
+    if (b.dataset.slot) { escolherSlot(b.dataset.slot); return; }
+    if (b.dataset.go) { ir(Number(b.dataset.go)); }
+  });
+
+  preencher(EXEMPLOS[0]);
+  iniciar(gerarCenario(valores()), false);
+  setTimeout(() => { rapido = false; }, 60);
+})();
+</script>
+
+</body>
+</html>
